@@ -1,0 +1,56 @@
+buildscript {
+  repositories {
+    jcenter()
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+}
+
+allprojects {
+  repositories {
+    jcenter()
+  }
+
+  apply plugin: 'distribution'
+}
+
+subprojects {
+  apply plugin: 'java'
+
+  configurations {
+    providedCompile
+    runtimeJars
+  }
+
+  sourceSets {
+    main.compileClasspath += configurations.providedCompile
+  }
+
+  dependencies {
+    compile 'com.google.guava:guava:27.0.1-jre'
+
+    // Declare the dependencies of runtimeJars, which is the runtime classpath minus provided dependencies.
+    runtimeJars configurations.runtimeClasspath - configurations.providedCompile
+
+  }
+}
+
+def subProjectCopySpec(Project p) {
+  copySpec {
+    into(p.name) {
+      from p.tasks.withType(Jar) // app artifact
+      from p.configurations.runtimeJars
+    }
+  }
+}
+
+distributions {
+  main {
+    contents {
+      getSubprojects().each {
+        with subProjectCopySpec(it)
+      }
+    }
+  }
+}
